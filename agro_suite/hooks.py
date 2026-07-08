@@ -1,5 +1,5 @@
-app_name = "vac_custom"
-app_title = "VAC Custom"
+app_name = "agro_suite"
+app_title = "Agro Suite"
 app_publisher = "Vijay Agro Centre"
 app_description = (
     "Vijay Agro Centre ERPNext customizations captured as versioned fixtures "
@@ -11,7 +11,7 @@ app_license = "mit"
 
 # ---------------------------------------------------------------------------
 # Fixtures — the reproducible "recipe" for our customizations.
-# Exported/imported as JSON under vac_custom/fixtures/ and applied on
+# Exported/imported as JSON under agro_suite/fixtures/ and applied on
 # `bench migrate`.
 #
 # IMPORTANT: filters use EXPLICIT allowlists, NOT a blanket module filter.
