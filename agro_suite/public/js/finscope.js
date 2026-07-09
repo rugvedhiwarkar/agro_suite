@@ -47,7 +47,13 @@ finscope.apply_hidden = function (report) {
 	var hidden = finscope.get_hidden();
 	var ren = finscope.get_renames();
 	var vis = hidden.length ? full.filter((c) => hidden.indexOf(c.fieldname) < 0) : full.slice();
-	report.columns = vis.map((c) => (ren[c.fieldname] ? Object.assign({}, c, { label: ren[c.fieldname] }) : c));
+	// frappe bakes the header text into column.name/content at prepare time
+	// (prepare_columns), so a rename must override those too, not just label.
+	report.columns = vis.map((c) =>
+		ren[c.fieldname]
+			? Object.assign({}, c, { label: ren[c.fieldname], name: ren[c.fieldname], content: ren[c.fieldname] })
+			: c
+	);
 };
 
 /* ---- persistent column ORDER ---- */
@@ -121,11 +127,15 @@ finscope.pin_kind = function (row, columns) {
 	}
 	return false;
 };
-finscope.build_groups = function (flat, columns, by1, by2) {
-	var c1 = columns.find((c) => c.fieldname === by1);
+finscope.build_groups = function (flat, columns, by1, by2, all_cols) {
+	var lookup = all_cols && all_cols.length ? all_cols : columns;
+	var c1 = lookup.find((c) => c.fieldname === by1);
 	if (!c1) return { rows: flat, tree: false };
-	var c2 = by2 ? columns.find((c) => c.fieldname === by2) : null;
+	var c2 = by2 ? lookup.find((c) => c.fieldname === by2) : null;
 	var sumCols = columns.filter(finscope.is_sum_col);
+	var TEXTY = ["", "data", "link", "dynamic link", "text", "small text", "text editor", "select", "autocomplete", "html"];
+	var labelCol = columns.find((c) => c.fieldname && !c.hidden && TEXTY.indexOf((c.fieldtype || "").toLowerCase()) >= 0) || c1;
+	var labelField = labelCol.fieldname;
 	var top = [], bottom = [], mid = [];
 	flat.forEach((r) => { var k = finscope.pin_kind(r, columns); if (k === "top") top.push(r); else if (k === "bottom") bottom.push(r); else mid.push(r); });
 	function grp(rows, col) { var order = [], map = {}; rows.forEach((r) => { var k = String(finscope.cell(r, col.fieldname)); if (!(k in map)) { map[k] = []; order.push(k); } map[k].push(r); }); return { order, map }; }
@@ -136,10 +146,10 @@ finscope.build_groups = function (flat, columns, by1, by2) {
 	var gi = 0, g1 = grp(mid, c1);
 	g1.order.forEach((k1) => {
 		var members = g1.map[k1]; var gid = "fsg" + gi++;
-		out.push(header(gid, "", 0, c1.fieldname, k1, members));
+		out.push(header(gid, "", 0, labelField, k1, members));
 		if (c2) {
 			var g2 = grp(members, c2), si = 0;
-			g2.order.forEach((k2) => { var subs = g2.map[k2]; var sid = gid + "s" + si++; out.push(header(sid, gid, 1, c2.fieldname, k2, subs)); subs.forEach((m, j) => out.push(leaf(m, sid + "d" + j, sid, 2))); });
+			g2.order.forEach((k2) => { var subs = g2.map[k2]; var sid = gid + "s" + si++; out.push(header(sid, gid, 1, labelField, k2, subs)); subs.forEach((m, j) => out.push(leaf(m, sid + "d" + j, sid, 2))); });
 		} else { members.forEach((m, j) => out.push(leaf(m, gid + "d" + j, gid, 1))); }
 	});
 	bottom.forEach((r) => out.push(leaf(r, "fsbot" + pi++, "", 0)));
@@ -150,7 +160,7 @@ finscope.apply_summarize = function (report) {
 	var sel = finscope.ls_get(finscope.sum_key()) || { by1: "", by2: "" };
 	var treeNow = !!sel.by1;
 	if (treeNow) {
-		var res = finscope.build_groups(flat, report.columns, sel.by1, sel.by2);
+		var res = finscope.build_groups(flat, report.columns, sel.by1, sel.by2, report.__fs_cols);
 		report.data = res.rows; report.tree_report = true;
 		report.report_settings.tree = true; report.report_settings.name_field = "_fs_node"; report.report_settings.parent_field = "_fs_parent";
 		if (typeof report.report_settings.initial_depth !== "number") report.report_settings.initial_depth = 0;
@@ -169,12 +179,18 @@ finscope.icon = function (name, fallback) {
 	return fallback;
 };
 finscope.add_control = function (report) {
-	if (report.__fs_ctrl || !report.$report) return;
+	// the desk reuses ONE QueryReport instance across in-SPA navigation, so
+	// the bar must be rebuilt per report (and removed on non-FinScope ones)
+	if (!report.$report) return;
+	if (report.__fs_ctrl === report.report_name) return;
 	var visCols = (report.columns || []).filter((c) => c.fieldname && c.label);
 	if (!visCols.length) return;
-	report.__fs_ctrl = true;
+	report.__fs_ctrl = report.report_name;
+	$(".finscope-summarize-bar").remove();
 	var sel = finscope.ls_get(finscope.sum_key()) || { by1: "", by2: "" };
-	var opts = '<option value="">— none —</option>' + visCols.map((c) => '<option value="' + c.fieldname + '">' + frappe.utils.escape_html(c.label) + "</option>").join("");
+	var groupCols = (report.__fs_cols && report.__fs_cols.length ? report.__fs_cols : report.columns).filter((c) => c.fieldname && c.label && !c.hidden);
+	var ren0 = finscope.get_renames();
+	var opts = '<option value="">— none —</option>' + groupCols.map((c) => '<option value="' + c.fieldname + '">' + frappe.utils.escape_html(ren0[c.fieldname] || c.label) + "</option>").join("");
 	var $bar = $('<div class="finscope-summarize-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:2px 0 10px;">' +
 		'<span style="font-weight:600;">Summarize By</span>' +
 		'<select class="fs-by1 form-control input-xs" style="width:200px">' + opts + "</select>" +
@@ -187,7 +203,7 @@ finscope.add_control = function (report) {
 	});
 
 	// --- Columns picker: show/hide checkbox + rename pencil + reset, persisted ---
-	var allCols = (report.__fs_cols && report.__fs_cols.length ? report.__fs_cols : report.columns).filter((c) => c.fieldname && c.label);
+	var allCols = (report.__fs_cols && report.__fs_cols.length ? report.__fs_cols : report.columns).filter((c) => c.fieldname && c.label && !c.hidden);
 	var $colWrap = $('<div style="position:relative;display:inline-block;margin-left:6px;">');
 	var $colBtn = $('<button class="btn btn-default btn-xs">Columns ▾</button>');
 	var $colMenu = $('<div style="display:none;position:absolute;z-index:1010;top:100%;left:0;background:var(--fg-color,#fff);border:1px solid var(--border-color,#d1d8dd);border-radius:6px;padding:6px;max-height:320px;overflow:auto;min-width:260px;box-shadow:0 4px 14px rgba(0,0,0,.18);"></div>');
@@ -293,9 +309,33 @@ finscope.init = function () {
 			try { finscope.wrap_settings(this); } catch (e) {}
 			try { finscope.apply_hidden(this); } catch (e) {}
 			try { finscope.apply_summarize(this); } catch (e) {}
+		} else {
+			try {
+				$(".finscope-summarize-bar").remove();
+				this.__fs_ctrl = null;
+				if (this.__fs_tree_state) { this.tree_report = false; this.__fs_tree_state = false; }
+			} catch (e) {}
 		}
 		return origRender.apply(this, arguments);
 	};
+	// SPA route changes reuse the QueryReport instance and may show a message
+	// instead of rendering (e.g. prepared reports), so render-time cleanup is
+	// not enough: scrub the control bar + tree state whenever the route leaves
+	// a FinScope report.
+	frappe.router.on("change", function () {
+		try {
+			var rt = frappe.get_route();
+			var isFs = rt && rt[0] === "query-report" && finscope.is_feature_report(rt[1]);
+			if (isFs) return;
+			$(".finscope-summarize-bar").remove();
+			var r = frappe.query_report;
+			if (r && r.__fs_tree_state) {
+				r.__fs_tree_state = false; r.tree_report = false; r.__fs_ctrl = null;
+				if (r.report_settings) r.report_settings.tree = false;
+				if (r.datatable) { try { r.$report.empty(); } catch (e) {} r.datatable = null; }
+			}
+		} catch (e) {}
+	});
 	console.log("FinScope: ledger features active (order / hide / rename / summarize) for 'FinScope - *' reports");
 };
 finscope.init();
