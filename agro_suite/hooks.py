@@ -50,7 +50,6 @@ fixtures = [
                     "Product Detail Parameter",
                     "CD Scheme",
                     "CD Slab",
-                    "CD Scheme Vendor",
                     "VAC Party",
                     "Credit Recovery",
                     "Credit Recovery Follow-up",
@@ -170,13 +169,13 @@ fixtures = [
     {
         "dt": "Workspace Sidebar",
         "filters": {
-            "name": ["in", ["Credit Recovery", "Cash Discount", "Product Details"]]
+            "name": ["in", ["Credit Recovery", "SchemeWise", "Product Details"]]
         },
     },
     {
         "dt": "Desktop Icon",
         "filters": {
-            "name": ["in", ["Credit Recovery", "Cash Discount", "Product Details"]]
+            "name": ["in", ["Credit Recovery", "SchemeWise", "Product Details"]]
         },
     },
 
@@ -188,7 +187,7 @@ fixtures = [
                 "in",
                 [
                     "Credit Recovery Dashboard",
-                    "Cash Discount",
+                    "SchemeWise",
                     "Product Details",
                 ],
             ]
