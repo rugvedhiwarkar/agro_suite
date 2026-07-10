@@ -42,6 +42,16 @@ app_include_css = ["/assets/agro_suite/css/vac_theme.css"]
 # copies the per-site vac_theme_enabled flag into desk boot info
 extend_bootinfo = "agro_suite.boot.extend_bootinfo"
 
+# Party-integration tools (see agro_suite/party.py). The Customer/Supplier
+# sync is gated per-site by vac_party_tools_enabled; the Party Link guard is
+# ungated — it only rejects NEW duplicate links (erpnext #35184 gap), which
+# is pure protection for Common Party Accounting on any site.
+doc_events = {
+    "Customer": {"on_update": "agro_suite.party.sync_party_masters"},
+    "Supplier": {"on_update": "agro_suite.party.sync_party_masters"},
+    "Party Link": {"validate": "agro_suite.party.validate_party_link"},
+}
+
 # ---------------------------------------------------------------------------
 # Fixtures — the reproducible "recipe" for our customizations.
 # Exported/imported as JSON under agro_suite/fixtures/ and applied on
