@@ -32,10 +32,13 @@ page_js = {"point-of-sale": "public/js/pos_cash_desk.js"}
 # core_fixes: targeted runtime wraps for upstream ERPNext v16 bugs (currently:
 # horizontal Financial Report Templates rendering blank via is_blank_row) —
 # see the file header; drop entries as upstream fixes ship.
+# vac_desk: breadcrumb home icon -> the user's default workspace (self-gating
+# on User.default_workspace being set; stock /desk behaviour otherwise).
 app_include_js = [
     "/assets/agriops_suite/js/finscope.js",
     "/assets/agriops_suite/js/vac_theme.js",
     "/assets/agriops_suite/js/core_fixes.js",
+    "/assets/agriops_suite/js/vac_desk.js",
 ]
 app_include_css = [
     "/assets/agriops_suite/css/vac_theme.css",
