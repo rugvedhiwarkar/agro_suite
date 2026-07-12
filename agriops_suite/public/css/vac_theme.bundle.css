@@ -315,6 +315,12 @@ html[data-vac-theme="nature"][data-theme="light"] {
 	--gray-800: #294540;
 	--gray-900: #122f2a;
 
+	/* readability: Frappe maps placeholder / disabled text onto the lightest
+	   gray, which here equals the cream ground (invisible, 1:1). Give them a
+	   legible muted value. */
+	--placeholder-color: #5b7871;
+	--disabled-text-color: #607e76;
+
 	/* canvas & chrome */
 	--bg-color: #f6f4ee;
 	--navbar-bg: #12303b;
@@ -382,6 +388,14 @@ html[data-vac-theme="nature"][data-theme="dark"] {
 	--gray-700: #2b433c;
 	--gray-800: #193733;
 	--gray-900: #0e2022;
+
+	/* readability: Frappe maps the dim-text tier (placeholder / muted /
+	   disabled / grid headers) onto the darkest grays, which fails WCAG on
+	   this dark ground (~1.6-3:1). Decouple text to legible values (5-8:1);
+	   the gray ramp above still drives borders and surfaces. */
+	--text-muted: #9fbcb2;
+	--placeholder-color: #7fa298;
+	--disabled-text-color: #88aa9f;
 
 	--navbar-bg: #081a1c;
 
@@ -654,4 +668,13 @@ html[data-theme="dark"] #vac-greet-wrap .b {
 #vac-greet-wrap .tag b {
 	color: var(--text-color);
 	font-weight: 600;
+}
+
+/* readability: grid column headers rendered at a near-invisible gray in the
+   nature dark theme; force the legible muted-text value. */
+html[data-vac-theme="nature"][data-theme="dark"] .grid-heading-row,
+html[data-vac-theme="nature"][data-theme="dark"] .grid-heading-row .col,
+html[data-vac-theme="nature"][data-theme="dark"] .grid-heading-row .static-area,
+html[data-vac-theme="nature"][data-theme="dark"] .grid-heading-row .field-area {
+	color: #bdd6cd;
 }
