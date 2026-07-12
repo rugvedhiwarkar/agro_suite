@@ -50,6 +50,13 @@ app_include_css = [
 # copies the per-site vac_theme_enabled flag into desk boot info
 extend_bootinfo = "agriops_suite.boot.extend_bootinfo"
 
+# POS item grid: most-billed items first instead of A-Z (agriops_suite/pos.py
+# — pinned copy of core get_items v16.25.0 with a popularity ORDER BY;
+# re-diff on every ERPNext upgrade).
+override_whitelisted_methods = {
+    "erpnext.selling.page.point_of_sale.point_of_sale.get_items": "agriops_suite.pos.get_items",
+}
+
 # Party-integration tools (see agriops_suite/party.py). The Customer/Supplier
 # sync is gated per-site by vac_party_tools_enabled; the Party Link guard is
 # ungated — it only rejects NEW duplicate links (erpnext #35184 gap), which
