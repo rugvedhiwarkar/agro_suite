@@ -70,6 +70,11 @@ app_include_css = [
 # copies the per-site vac_theme_enabled flag into desk boot info
 extend_bootinfo = "agriops_suite.boot.extend_bootinfo"
 
+# keep chosen standard reports (e.g. General Ledger) running LIVE rather than as
+# prepared/background reports — re-asserted after every migrate because a core
+# ERPNext upgrade re-imports the standard report and would flip it back.
+after_migrate = "agriops_suite.report_config.ensure_live_reports"
+
 # POS item grid: most-billed items first instead of A-Z (agriops_suite/pos.py
 # — pinned copy of core get_items v16.25.0 with a popularity ORDER BY;
 # re-diff on every ERPNext upgrade).
