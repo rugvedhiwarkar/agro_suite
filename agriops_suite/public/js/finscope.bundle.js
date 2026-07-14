@@ -72,14 +72,22 @@ finscope.apply_hidden = function (report) {
 	var full = (report.__fs_cols && report.__fs_cols.length ? report.__fs_cols : report.columns) || [];
 	var hidden = finscope.get_hidden();
 	var ren = finscope.get_renames();
+	var savedW = finscope.get_widths();
 	var vis = hidden.length ? full.filter((c) => hidden.indexOf(c.fieldname) < 0) : full.slice();
 	// frappe bakes the header text into column.name/content at prepare time
 	// (prepare_columns), so a rename must override those too, not just label.
-	report.columns = vis.map((c) =>
-		ren[c.fieldname]
+	// Saved WIDTHS are applied here (not only in decorate_options) because the
+	// in-place datatable refresh path — e.g. the report toolbar's Reload Report
+	// (↻) button — does NOT re-run get_datatable_options, so decorate_options
+	// never fires and widths would reset. Setting them on report.columns makes
+	// every render path (create AND refresh) carry the saved widths.
+	report.columns = vis.map((c) => {
+		var out = ren[c.fieldname]
 			? Object.assign({}, c, { label: ren[c.fieldname], name: ren[c.fieldname], content: ren[c.fieldname] })
-			: c
-	);
+			: c;
+		if (savedW[c.fieldname]) { if (out === c) out = Object.assign({}, c); out.width = savedW[c.fieldname]; }
+		return out;
+	});
 };
 
 /* ---- persistent column ORDER ---- */
@@ -425,19 +433,30 @@ finscope.init = function () {
 			}
 		} catch (e) {}
 	});
-	// persist column WIDTHS: after any mouse-up while on a feature report, if a
-	// column width changed (i.e. a resize just happened) snapshot all widths.
+	// persist column WIDTHS. Save ONLY the one column whose resize handle was
+	// grabbed (mousedown on .dt-cell__resize-handle), MERGED into the saved map.
+	// The old approach snapshotted EVERY width on any mouse-up, so if a re-render
+	// (Summarize toggle, Reload, filter change) momentarily reset a column to its
+	// default, the next click saved that default over the user's custom width.
+	// Scoping to the dragged column makes that impossible.
+	var fsResizeCol = null;
+	$(document).on("mousedown.fswidth", ".dt-cell__resize-handle", function (e) {
+		if (!finscope.on()) return;
+		var cell = e.target && e.target.closest ? e.target.closest(".dt-cell") : null;
+		fsResizeCol = cell ? cell.getAttribute("data-col-index") : null;
+	});
 	$(document).on("mouseup.fswidth", function () {
+		if (fsResizeCol === null) return;
+		var ci = fsResizeCol; fsResizeCol = null;
 		var r = frappe.query_report;
 		if (!r || !r.datatable || !finscope.on()) return;
 		setTimeout(function () {
 			if (!r.datatable) return;
-			var cols = r.datatable.getColumns() || [];
-			var cur = {}, changed = false;
-			cols.forEach(function (c) { if (c.fieldname && c.width) cur[c.fieldname] = c.width; });
-			var saved = finscope.get_widths();
-			Object.keys(cur).forEach(function (k) { if (saved[k] !== cur[k]) changed = true; });
-			if (changed) finscope.set_widths(cur);
+			var col = (r.datatable.getColumns() || []).filter(function (c) { return String(c.colIndex) === String(ci); })[0];
+			if (col && col.fieldname && col.width) {
+				var saved = finscope.get_widths();
+				if (saved[col.fieldname] !== col.width) { saved[col.fieldname] = col.width; finscope.set_widths(saved); }
+			}
 		}, 150);
 	});
 	// GL dual-role party filter — only where the flag enabled the standard General Ledger.
