@@ -12,11 +12,13 @@ app_license = "mit"
 # ---------------------------------------------------------------------------
 # Desk page extensions
 # ---------------------------------------------------------------------------
-# "Log Payment" button on the Point of Sale screen (Cash Desk). The JS is
-# self-gating: it renders only on sites where the `pos_cash_desk_flags`
+# "Fast Journal" button on the Point of Sale screen (Cash Desk). The JS is
+# self-gating: it renders only on sites where the `fast_voucher_config`
 # Server Script API exists and returns enabled=1, so shipping this code to
-# the shared bench does NOT surface it on production until that site is
-# explicitly switched on (staging-first).
+# the shared bench does NOT surface it on a site until it is explicitly
+# switched on (staging-first). The earlier "Log Payment" button was retired
+# 2026-07-16 (its four "POS Cash Desk *" Server Scripts are disabled on both
+# sites — the rollback path if it is ever needed again).
 page_js = {"point-of-sale": "public/js/pos_cash_desk.js"}
 
 # FinScope ledger features (persistent column order/hide/rename + Summarize
@@ -194,6 +196,10 @@ fixtures = [
                     "Payment Entry-busy_voucher_ref",
                     "Payment Entry-cd_scheme",
                     "Journal Entry-cd_scheme",
+                    # Alias on Customer — alternate spelling of the same person kept
+                    # from de-dup merges (owner rule 2026-07-16: merged record's name
+                    # survives here), so counter staff can still find them by it.
+                    "Customer-custom_alias",
                     # Village on Customer — backfilled from BusyWin
                     # MasterAddressInfo.Address1, which the migration bridge dropped in
                     # normalize.py before the bundle was built. Deliberately a Customer
