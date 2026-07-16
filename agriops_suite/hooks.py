@@ -205,6 +205,40 @@ fixtures = [
                     # rename as tracked; call agriops_suite.party.*)
                     "VAC Party Counterpart - Customer",
                     "VAC Party Counterpart - Supplier",
+                    # "Print" button group on the bill forms — one click to the
+                    # matching VAC print format. Labels follow is_return (Debit
+                    # Note / Credit Note / Goods Return Note). The Sales Invoice
+                    # one also embeds the vac_wa WhatsApp helper.
+                    "VAC Print Buttons - Sales Invoice",
+                    "VAC Print Buttons - Delivery Note",
+                    "VAC Print Buttons - Purchase Order",
+                    "VAC Print Buttons - Purchase Receipt",
+                    "VAC Print Buttons - Purchase Invoice",
+                ],
+            ]
+        },
+    },
+
+    # --- Our Print Formats (Busy-replica bill layouts) ----------------------
+    # 4 sales + 4 purchase. The A4/A5 tax invoice and the two goods notes each
+    # branch inside one HTML on doc.doctype / is_return, but every Print Format
+    # RECORD is a distinct row and is listed explicitly here. Self-contained:
+    # the fixture carries the full html+css, so a fresh site reproduces them on
+    # migrate. Source lives in custom_doctypes/print_formats/ (pf_install.py).
+    {
+        "dt": "Print Format",
+        "filters": {
+            "name": [
+                "in",
+                [
+                    "VAC Tax Invoice A4",
+                    "VAC Tax Invoice A5",
+                    "VAC Delivery Note",
+                    "VAC Delivery Slip",
+                    "VAC Purchase Order",
+                    "VAC Goods Received Note",
+                    "VAC Goods Received Slip",
+                    "VAC Purchase Voucher",
                 ],
             ]
         },
@@ -320,5 +354,28 @@ fixtures = [
     {
         "dt": "Property Setter",
         "filters": {"creation": [">=", "2026-06-10 00:00:00"]},
+    },
+    # default_print_format for the bill forms -> the VAC formats. Kept in a
+    # SEPARATE prefixed file (printdefaults_property_setter.json) because 4 of
+    # the 5 records were created in the 2026-06-09 setup burst and the date
+    # filter above deliberately excludes that burst — a plain merge would drop
+    # them on the next export. `prefix` writes its own file, so the two Property
+    # Setter captures never collide. (SI/DN existed pre-print-work; PI/PO/PR
+    # were repointed/added 2026-07-16.)
+    {
+        "dt": "Property Setter",
+        "prefix": "printdefaults",
+        "filters": {
+            "name": [
+                "in",
+                [
+                    "Sales Invoice-main-default_print_format",
+                    "Delivery Note-main-default_print_format",
+                    "Purchase Invoice-main-default_print_format",
+                    "Purchase Order-main-default_print_format",
+                    "Purchase Receipt-main-default_print_format",
+                ],
+            ]
+        },
     },
 ]
