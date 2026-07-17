@@ -199,6 +199,10 @@ fixtures = [
                     "Payment Entry-busy_voucher_ref",
                     "Payment Entry-cd_scheme",
                     "Journal Entry-cd_scheme",
+                    # Alias on Customer — alternate spelling of the same person kept
+                    # from de-dup merges (owner rule 2026-07-16: merged record's name
+                    # survives here), so counter staff can still find them by it.
+                    "Customer-custom_alias",
                     # Village on Customer — backfilled from BusyWin
                     # MasterAddressInfo.Address1, which the migration bridge dropped in
                     # normalize.py before the bundle was built. Deliberately a Customer
@@ -234,6 +238,11 @@ fixtures = [
                     "VAC Print Buttons - Purchase Order",
                     "VAC Print Buttons - Purchase Receipt",
                     "VAC Print Buttons - Purchase Invoice",
+                    # BOI Sihora RTGS/NEFT application / deposit slip off a
+                    # Payment Entry (deposit slip on Internal Transfer)
+                    "VAC Print Buttons - Payment Entry",
+                    # BOI deposit slip with counted denominations
+                    "VAC Print Buttons - Bank Deposit Voucher",
                     # Driver Slip office review: Make Invoice button + challan
                     # duplicate warning (the PWA's desk-side counterpart)
                     "Driver Slip - Make Invoice",
@@ -262,6 +271,15 @@ fixtures = [
                     "VAC Goods Received Note",
                     "VAC Goods Received Slip",
                     "VAC Purchase Voucher",
+                    # Bank of India (Sihora) RTGS/NEFT application form,
+                    # pre-filled from a Payment Entry (vac_rtgs_neft.html)
+                    "VAC RTGS NEFT Request",
+                    # BOI deposit/pay-in slip: BDV variant auto-fills the
+                    # counted denominations, PE variant prints them blank
+                    "VAC Deposit Slip",
+                    "VAC Deposit Slip PE",
+                    # BOI Positive Pay System cheque requisition off a PE
+                    "VAC PPS Requisition",
                 ],
             ]
         },
