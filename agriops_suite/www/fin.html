@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Vijay Agro Centre — financial cockpit">
+<title>VAC Financial Cockpit</title>
+<style>
+:root {
+	color-scheme: light;
+	--page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+	--grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,.10);
+	--accent:#006300; --goodtext:#006300; --crit:#d03b3b;
+	--wf-add:#2a78d6; --wf-sub:#e34948; --wf-tot:#184f95;
+	--barfill:#2a78d6; --barfill-soft:#86b6ef; --lybar:#b9b7ae;
+	--band-kharif:rgba(0,131,0,.06); --band-rabi:rgba(42,120,214,.05);
+	--chipbg:#f1f0ec;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		color-scheme: dark;
+		--page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+		--grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,.10);
+		--accent:#0ca30c; --goodtext:#0ca30c; --crit:#e66767;
+		--wf-add:#3987e5; --wf-sub:#e66767; --wf-tot:#5598e7;
+		--barfill:#3987e5; --barfill-soft:#6da7ec; --lybar:#55544f;
+		--band-kharif:rgba(12,163,12,.10); --band-rabi:rgba(57,135,229,.08);
+		--chipbg:#232322;
+	}
+}
+* { box-sizing: border-box; }
+body { background:var(--page); color:var(--ink); margin:0; padding:0 20px 56px;
+	font:14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+.wrap { max-width:1080px; margin:0 auto; }
+.eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
+	font-weight:600; padding-top:26px; }
+h1 { font-size:24px; margin:6px 0 4px; font-weight:650; }
+.sub { color:var(--ink2); margin:0 0 6px; max-width:78ch; }
+.status { font-size:12px; color:var(--muted); margin:0 0 8px; }
+.status .ok { color:var(--goodtext); font-weight:600; }
+.status .bad { color:var(--crit); font-weight:600; }
+.fbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 0 6px; }
+.fchip { appearance:none; font:inherit; font-size:12.5px; font-weight:600; color:var(--ink2);
+	border:1px solid var(--border); background:var(--surface); border-radius:999px;
+	padding:5px 13px; cursor:pointer; }
+.fchip:hover { color:var(--ink); }
+.fchip[aria-pressed="true"] { color:var(--accent); border-color:var(--accent); background:var(--chipbg); }
+.fbar label { font-size:12px; color:var(--muted); }
+.fbar select, .fbar input[type=date] { font:inherit; font-size:12.5px; color:var(--ink);
+	background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px 8px; }
+.resolved { font-size:12.5px; color:var(--muted); padding:2px 0 10px; font-variant-numeric:tabular-nums; }
+.resolved b { color:var(--ink2); }
+.narr { border-left:3px solid var(--accent); background:var(--surface); border-radius:0 10px 10px 0;
+	padding:10px 16px; font-size:13px; color:var(--ink2); margin:6px 0 14px; }
+.narr b { color:var(--ink); }
+.tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+@media (max-width:880px) { .tiles { grid-template-columns:repeat(2,1fr); } }
+.tile { background:var(--surface); border:1px solid var(--border); border-radius:12px;
+	padding:14px 16px; min-width:0; }
+.tlabel { font-size:12px; color:var(--ink2); }
+.tval { font-size:24px; font-weight:650; margin-top:2px; line-height:1.1; white-space:nowrap; }
+.tdelta { font-size:12px; margin-top:5px; color:var(--ink2); }
+.up { color:var(--goodtext); font-weight:600; }
+.down { color:var(--crit); font-weight:600; }
+.flat { color:var(--muted); font-weight:600; }
+section.block { margin-top:24px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; }
+h2 { font-size:16px; margin:0 0 4px; font-weight:650; }
+.why { color:var(--ink2); font-size:13px; margin:0 0 12px; }
+.legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink2); margin:2px 0 10px; }
+.legend .k { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:10px; height:10px; border-radius:3px; display:inline-block; }
+svg text { font-family:inherit; }
+.axist { font-size:10.5px; fill:var(--muted); }
+.vlab { font-size:11px; font-weight:600; fill:var(--ink); }
+.vlab2 { font-size:10.5px; fill:var(--ink2); }
+.scrollx { overflow-x:auto; }
+.scrollx > svg { display:block; }
+.foot { margin-top:30px; font-size:12px; color:var(--muted); }
+#tt { position:fixed; z-index:50; pointer-events:none; background:var(--ink); color:var(--page);
+	font-size:12px; line-height:1.4; padding:7px 10px; border-radius:8px; max-width:280px;
+	opacity:0; transition:opacity .08s; }
+#err { display:none; margin:20px 0; padding:14px 18px; border:1px solid var(--crit);
+	border-radius:12px; color:var(--crit); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+	<div class="eyebrow">Vijay Agro Centre · Financial Cockpit · Phase 1</div>
+	<h1>Profit &amp; Loss</h1>
+	<p class="sub">Live from the ledger, exact to the day. Balance Sheet, Cash Flow and the
+		registers arrive in Phase 2 — this page proves the pipe.</p>
+	<p class="status" id="status">Loading the ledger…</p>
+	<div id="err"></div>
+
+	<div id="app" style="display:none">
+		<div class="fbar" id="presets"></div>
+		<div class="fbar">
+			<label for="from">From</label><input type="date" id="from">
+			<label for="to">to</label><input type="date" id="to">
+			<span style="width:1px; height:22px; background:var(--grid)"></span>
+			<label for="cmpsel">Compare</label>
+			<select id="cmpsel">
+				<option value="0">off</option>
+				<option value="1" selected>vs 1 year back</option>
+				<option value="2">vs 2 years back</option>
+			</select>
+		</div>
+		<div class="resolved" id="resolved"></div>
+		<div class="narr" id="narr"></div>
+		<div class="tiles" id="tiles"></div>
+
+		<section class="block">
+			<h2>The waterfall — revenue down to profit</h2>
+			<p class="why" id="wf-why"></p>
+			<div class="card">
+				<div class="legend" id="wf-legend"></div>
+				<div class="scrollx" id="wf"></div>
+			</div>
+		</section>
+
+		<section class="block">
+			<h2>Month by month, seasons drawn on</h2>
+			<p class="why">Kharif and Rabi shaded; grey twins are the compare year.</p>
+			<div class="card">
+				<p style="font-size:13px; font-weight:650; margin:0 0 2px">Revenue</p>
+				<div class="legend" id="trend-legend"></div>
+				<div class="scrollx" id="trend-rev"></div>
+				<p style="font-size:13px; font-weight:650; margin:14px 0 2px">Net profit</p>
+				<div class="scrollx" id="trend-prof"></div>
+			</div>
+		</section>
+
+		<div class="foot" id="foot"></div>
+	</div>
+</div>
+<div id="tt" role="status"></div>
+
+<script>
+(function () {
+"use strict";
+var D = null, P = null;                       // snapshot payload, prefix arrays
+var EPOCH = 0, ND = 0, LAST = 0;
+var MS_DAY = 86400000;
+
+function idxOf(iso) {
+	var y = +iso.slice(0, 4), m = +iso.slice(5, 7), dd = +iso.slice(8, 10);
+	return Math.round((Date.UTC(y, m - 1, dd) - EPOCH) / MS_DAY);
+}
+function dateOf(i) { return new Date(EPOCH + i * MS_DAY); }
+function isoOf(i) { return dateOf(i).toISOString().slice(0, 10); }
+function dot(i) {
+	var d = dateOf(i);
+	return d.getUTCDate() + "-" + (d.getUTCMonth() + 1) + "-" + d.getUTCFullYear();
+}
+function shiftYears(i, n) {
+	var d = dateOf(i), y = d.getUTCFullYear() - n, m = d.getUTCMonth(), dd = d.getUTCDate();
+	var lastD = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+	return Math.round((Date.UTC(y, m, Math.min(dd, lastD)) - EPOCH) / MS_DAY);
+}
+function prefix(map) {
+	var p = new Float64Array(ND + 1);
+	for (var i = 0; i < ND; i++) p[i + 1] = p[i] + (map[String(i)] || 0);
+	return p;
+}
+function F(b, a, z) { return P[b][Math.min(z, LAST) + 1] - P[b][Math.max(a, 0)]; }
+function PROFIT(a, z) { return F("inc", a, z) - F("dexp", a, z) - F("iexp", a, z); }
+
+function fmtIN(v) { return "₹" + Math.round(v).toLocaleString("en-IN"); }
+function fmtL(v) {
+	var a = Math.abs(v), s = v < 0 ? "−" : "";
+	if (a >= 1e7) return s + "₹" + (a / 1e7).toFixed(2) + " Cr";
+	if (a >= 1e5) return s + "₹" + (a / 1e5).toFixed(a >= 1e6 ? 1 : 2) + "L";
+	return s + "₹" + Math.round(a).toLocaleString("en-IN");
+}
+function deltaHTML(cur, prev, upGood, tag) {
+	if (prev === null || prev === undefined) return "";
+	var d = cur - prev;
+	var cls = d > 0 ? (upGood ? "up" : "down") : d < 0 ? (upGood ? "down" : "up") : "flat";
+	var arrow = d > 0 ? "▲" : d < 0 ? "▼" : "▬";
+	return '<span class="' + cls + '">' + arrow + " " + fmtL(Math.abs(d)) + "</span> " + tag;
+}
+
+var tt = document.getElementById("tt");
+function bindTT(node, html) {
+	node.addEventListener("mousemove", function (ev) {
+		tt.innerHTML = html;
+		tt.style.opacity = 1;
+		tt.style.left = Math.min(ev.clientX + 14, innerWidth - 290) + "px";
+		tt.style.top = Math.max(ev.clientY - 40, 8) + "px";
+	});
+	node.addEventListener("mouseleave", function () { tt.style.opacity = 0; });
+}
+var NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+	var e = document.createElementNS(NS, tag);
+	for (var k in attrs) e.setAttribute(k, attrs[k]);
+	if (parent) parent.appendChild(e);
+	return e;
+}
+function clear(id) { var h = document.getElementById(id); h.innerHTML = ""; return h; }
+
+// ---------- charts (same primitives as the cockpit mock) ----------
+function waterfall(hostId, steps, lySteps) {
+	var host = clear(hostId);
+	var W = 640, H = 280, padL = 50, padR = 10, padT = 26, padB = 32;
+	var iw = W - padL - padR, ih = H - padT - padB;
+	var cum = 0, lo = 0, hi = 1, pos = [];
+	steps.forEach(function (st) {
+		if (st.t === "tot") { pos.push([0, st.v]); cum = st.v; }
+		else { pos.push([cum, cum + st.v]); cum += st.v; }
+	});
+	pos.forEach(function (p) { lo = Math.min(lo, p[0], p[1]); hi = Math.max(hi, p[0], p[1]); });
+	var ticks = null;
+	if (lySteps) {
+		ticks = steps.map(function (st, i) {
+			var v = lySteps[i];
+			if (v === null || v === undefined) return null;
+			return (st.t === "tot" || i === 0) ? v : pos[i][0] + v;
+		});
+		ticks.forEach(function (v) { if (v !== null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+	}
+	var svg = el("svg", { viewBox: "0 0 " + W + " " + H, style: "width:100%; min-width:540px; height:auto", role: "img" });
+	host.appendChild(svg);
+	function Y(v) { return padT + (hi - v) / (hi - lo) * ih; }
+	var span = hi - lo;
+	var stepv = span > 4e6 ? 1e6 : span > 1.5e6 ? 5e5 : span > 4e5 ? 2e5 : 1e5;
+	for (var g = Math.ceil(lo / stepv) * stepv; g <= hi; g += stepv) {
+		el("line", { x1: padL, x2: W - padR, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+		el("text", { x: padL - 6, y: Y(g) + 3.5, "text-anchor": "end", "class": "axist" }, svg)
+			.textContent = g === 0 ? "0" : "₹" + (g / 1e5) + "L";
+	}
+	var n = steps.length, slot = iw / n, bw = Math.min(70, slot * 0.6);
+	steps.forEach(function (st, i) {
+		var p = pos[i], x = padL + slot * i + (slot - bw) / 2;
+		var yT = Y(Math.max(p[0], p[1])), yB = Y(Math.min(p[0], p[1]));
+		var fill = st.t === "add" ? "var(--wf-add)" : st.t === "sub" ? "var(--wf-sub)" : "var(--wf-tot)";
+		var r = el("rect", { x: x, y: yT, width: bw, height: Math.max(yB - yT, 2), rx: 4, fill: fill }, svg);
+		var tip = "<b>" + st.l + "</b><br>" + fmtIN(st.v);
+		if (ticks && lySteps[i] !== null && lySteps[i] !== undefined) tip += "<br>Compare: " + fmtIN(lySteps[i]);
+		bindTT(r, tip);
+		if (i < n - 1) {
+			var cy = Y(st.t === "tot" ? st.v : p[1]);
+			el("line", { x1: x + bw, x2: padL + slot * (i + 1) + (slot - bw) / 2, y1: cy, y2: cy, stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+		}
+		el("text", { x: x + bw / 2, y: yT - 6, "text-anchor": "middle", "class": "vlab" }, svg).textContent = fmtL(st.v);
+		el("text", { x: x + bw / 2, y: H - 10, "text-anchor": "middle", "class": "vlab2" }, svg).textContent = st.l;
+		if (ticks && ticks[i] !== null) {
+			el("line", { x1: x - 5, x2: x + bw + 5, y1: Y(ticks[i]), y2: Y(ticks[i]),
+				stroke: "var(--muted)", "stroke-width": 2, "stroke-dasharray": "3 2" }, svg);
+		}
+	});
+	el("line", { x1: padL, x2: W - padR, y1: Y(0), y2: Y(0), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+}
+
+// month helpers: month index m counts from the month of d0
+var M0Y = 0, M0M = 0, NMON = 0;
+function monthOfDay(i) {
+	var d = dateOf(i);
+	return (d.getUTCFullYear() - M0Y) * 12 + (d.getUTCMonth() + 1 - M0M);
+}
+function monthStartIdx(mi) {
+	var y = M0Y + Math.floor((M0M - 1 + mi) / 12), m = (M0M - 1 + mi) % 12 + 1;
+	return Math.max(0, idxOf(y + "-" + (m < 10 ? "0" : "") + m + "-01"));
+}
+function monthEndIdx(mi) { return mi >= NMON - 1 ? LAST : monthStartIdx(mi + 1) - 1; }
+function monthLabel(mi) {
+	var names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+	var y = M0Y + Math.floor((M0M - 1 + mi) / 12), m = (M0M - 1 + mi) % 12 + 1;
+	return names[m - 1] + " '" + String(y).slice(2);
+}
+function monthSum(fn, mi) { return fn(monthStartIdx(mi), monthEndIdx(mi)); }
+
+function columns(hostId, mA, mB, fn, shiftM, opts) {
+	var host = clear(hostId);
+	var n = mB - mA + 1;
+	var W = Math.max(660, n * 46), H = opts.h || 170, padL = 46, padR = 8, padT = 20, padB = 22;
+	var iw = W - padL - padR, ih = H - padT - padB;
+	var svg = el("svg", { viewBox: "0 0 " + W + " " + H, style: "width:100%; min-width:" + Math.min(W, 660) + "px; height:auto", role: "img" });
+	host.appendChild(svg);
+	var vals = [], i;
+	for (i = mA; i <= mB; i++) {
+		vals.push(monthSum(fn, i));
+		if (shiftM) vals.push(i - shiftM >= 0 ? monthSum(fn, i - shiftM) : 0);
+	}
+	var hi = Math.max.apply(null, vals.map(function (v) { return Math.max(v, 0); }).concat([1]));
+	var lo = Math.min.apply(null, vals.map(function (v) { return Math.min(v, 0); }).concat([0]));
+	hi = Math.ceil(hi / 5e5) * 5e5; lo = lo < 0 ? Math.floor(lo / 5e5) * 5e5 : 0;
+	function Y(v) { return padT + (hi - v) / (hi - lo) * ih; }
+	var slot = iw / n;
+	if (opts.bands) {
+		var b0 = null, btype = null;
+		for (i = mA; i <= mB + 1; i++) {
+			var mm = i <= mB ? (M0M - 1 + i) % 12 + 1 : 0;
+			var t = (mm >= 6 && mm <= 10) ? "kharif" : (mm >= 11 || (mm >= 1 && mm <= 3)) ? "rabi" : null;
+			if (t !== btype) {
+				if (btype) el("rect", { x: padL + slot * (b0 - mA), y: padT, width: slot * (i - b0), height: ih, fill: "var(--band-" + btype + ")" }, svg);
+				btype = t; b0 = i;
+			}
+		}
+	}
+	var stepv = (hi - lo) > 3e6 ? 1.5e6 : (hi - lo) > 1.2e6 ? 5e5 : 2.5e5;
+	for (var g = Math.ceil(lo / stepv) * stepv; g <= hi; g += stepv) {
+		el("line", { x1: padL, x2: W - padR, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+		el("text", { x: padL - 5, y: Y(g) + 3.5, "text-anchor": "end", "class": "axist" }, svg)
+			.textContent = g === 0 ? "0" : (g / 1e5) + "L";
+	}
+	var pair = !!shiftM;
+	var bw = Math.min(pair ? 11 : 24, slot * (pair ? 0.3 : 0.58));
+	for (i = mA; i <= mB; i++) {
+		var xC = padL + slot * (i - mA) + slot / 2;
+		var v = monthSum(fn, i);
+		var partial = monthEndIdx(i) === LAST && dateOf(LAST).getUTCDate() < 28;
+		var fill = opts.diverge ? (v >= 0 ? "var(--wf-add)" : "var(--wf-sub)") : (partial ? "var(--barfill-soft)" : "var(--barfill)");
+		if (pair) {
+			var lv = i - shiftM >= 0 ? monthSum(fn, i - shiftM) : 0;
+			var rly = el("rect", { x: xC - bw - 1, y: Y(Math.max(lv, 0)), width: bw, height: Math.max(Math.abs(Y(lv) - Y(0)), 1.5), rx: 3, fill: "var(--lybar)" }, svg);
+			bindTT(rly, "<b>" + monthLabel(i - shiftM) + "</b> (compare)<br>" + fmtIN(lv));
+			var rty = el("rect", { x: xC + 1, y: Y(Math.max(v, 0)), width: bw, height: Math.max(Math.abs(Y(v) - Y(0)), 1.5), rx: 3, fill: fill }, svg);
+			bindTT(rty, "<b>" + monthLabel(i) + (partial ? " (part)" : "") + "</b><br>" + fmtIN(v));
+		} else {
+			var r = el("rect", { x: xC - bw / 2, y: Y(Math.max(v, 0)), width: bw, height: Math.max(Math.abs(Y(v) - Y(0)), 1.5), rx: 3, fill: fill }, svg);
+			bindTT(r, "<b>" + monthLabel(i) + (partial ? " (part)" : "") + "</b><br>" + fmtIN(v));
+		}
+		if ((i - mA) % Math.ceil(n / 12) === 0 || i === mB)
+			el("text", { x: xC, y: H - 6, "text-anchor": "middle", "class": "axist" }, svg).textContent = monthLabel(i);
+	}
+	el("line", { x1: padL, x2: W - padR, y1: Y(0), y2: Y(0), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+}
+
+// ---------- state & render ----------
+var st = { a: 0, b: 0, cmp: 1, preset: "fytd" };
+function fyStartFor(i) {
+	var d = dateOf(i), y = d.getUTCFullYear();
+	if (d.getUTCMonth() + 1 < 4) y -= 1;
+	return Math.max(0, idxOf(y + "-04-01"));
+}
+function presets() {
+	var host = clear("presets");
+	var fy0 = fyStartFor(LAST);
+	var defs = [
+		{ key: "fytd", label: "FYTD", a: fy0, b: LAST },
+		{ key: "lastfy", label: "Last FY", a: Math.max(0, shiftYears(fy0, 1)), b: fy0 - 1 },
+		{ key: "30d", label: "Last 30 days", a: Math.max(0, LAST - 29), b: LAST },
+		{ key: "12m", label: "Last 12 months", a: Math.max(0, shiftYears(LAST, 1) + 1), b: LAST },
+		{ key: "all", label: "Everything", a: 0, b: LAST }
+	];
+	defs.forEach(function (p) {
+		var btn = document.createElement("button");
+		btn.className = "fchip";
+		btn.textContent = p.label;
+		btn.setAttribute("aria-pressed", String(p.key === st.preset));
+		btn.addEventListener("click", function () {
+			st.a = p.a; st.b = p.b; st.preset = p.key;
+			document.getElementById("from").value = isoOf(p.a);
+			document.getElementById("to").value = isoOf(p.b);
+			render();
+		});
+		host.appendChild(btn);
+	});
+}
+function cmpRange(a, b, n) {
+	var sa = shiftYears(a, n), sb = shiftYears(b, n);
+	return sa >= 0 ? [sa, sb] : null;
+}
+function render() {
+	presets();
+	var a = st.a, b = st.b, n = st.cmp;
+	var cr = n ? cmpRange(a, b, n) : null;
+	var cmp = !!cr;
+	var cmpLabel = n === 2 ? "2 yrs back" : "last year";
+	var res = "<b>" + dot(a) + " → " + dot(b) + "</b> (" + (b - a + 1) + " days)";
+	if (n && !cr) res += " · compare off — nothing before " + dot(0);
+	else if (cmp) res += " · vs <b>" + dot(cr[0]) + " → " + dot(cr[1]) + "</b>";
+	document.getElementById("resolved").innerHTML = res;
+
+	var rev = F("inc", a, b), dx = F("dexp", a, b), ix = F("iexp", a, b), np = PROFIT(a, b);
+	var C = cmp ? { rev: F("inc", cr[0], cr[1]), dx: F("dexp", cr[0], cr[1]), ix: F("iexp", cr[0], cr[1]), np: PROFIT(cr[0], cr[1]) } : null;
+
+	document.getElementById("tiles").innerHTML =
+		tile("Revenue", fmtL(rev), cmp ? deltaHTML(rev, C.rev, true, "vs " + cmpLabel) : "") +
+		tile("Gross profit", fmtL(rev - dx), (rev ? ((rev - dx) / rev * 100).toFixed(1) : "0") + "% margin" +
+			(cmp && C.rev ? " · was " + ((C.rev - C.dx) / C.rev * 100).toFixed(1) + "%" : "")) +
+		tile("Overheads", fmtL(ix), cmp ? deltaHTML(ix, C.ix, false, "vs " + cmpLabel) : "") +
+		tile("Net profit", fmtL(np), (cmp ? deltaHTML(np, C.np, true, "vs " + cmpLabel) + " · " : "") +
+			(rev ? (np / rev * 100).toFixed(1) : "0") + "% of sales");
+
+	document.getElementById("narr").innerHTML = cmp
+		? "Takings " + (rev >= C.rev ? "up " : "down ") + "<b>" + fmtL(Math.abs(rev - C.rev)) + "</b> (" +
+			(C.rev ? Math.abs((rev - C.rev) / C.rev * 100).toFixed(1) : "—") + "%) on " + cmpLabel +
+			" for these dates; profit <b>" + fmtL(np) + "</b> against " + fmtL(C.np) + "."
+		: "Takings <b>" + fmtL(rev) + "</b>, profit <b>" + fmtL(np) + "</b> for these dates.";
+
+	document.getElementById("wf-why").textContent = "For " + dot(a) + " → " + dot(b) +
+		(cmp ? " — dashes mark " + cmpLabel + "." : ".");
+	document.getElementById("wf-legend").innerHTML =
+		'<span class="k"><span class="sw" style="background:var(--wf-add)"></span>In</span>' +
+		'<span class="k"><span class="sw" style="background:var(--wf-sub)"></span>Out</span>' +
+		'<span class="k"><span class="sw" style="background:var(--wf-tot)"></span>Result</span>' +
+		(cmp ? '<span class="k"><span style="width:14px; border-top:2px dashed var(--muted); display:inline-block"></span>' + cmpLabel + "</span>" : "");
+	waterfall("wf", [
+		{ l: "Revenue", v: rev, t: "add" },
+		{ l: "Direct costs", v: -dx, t: "sub" },
+		{ l: "Gross profit", v: rev - dx, t: "tot" },
+		{ l: "Overheads", v: -ix, t: "sub" },
+		{ l: "Net profit", v: np, t: "tot" }
+	], cmp ? [C.rev, -C.dx, C.rev - C.dx, -C.ix, C.np] : null);
+
+	var mA = monthOfDay(a), mB = monthOfDay(b);
+	var shiftM = cmp && (mA - n * 12 >= 0) ? n * 12 : 0;
+	document.getElementById("trend-legend").innerHTML = shiftM
+		? '<span class="k"><span class="sw" style="background:var(--barfill)"></span>This period</span>' +
+			'<span class="k"><span class="sw" style="background:var(--lybar)"></span>' + cmpLabel + "</span>" : "";
+	columns("trend-rev", mA, mB, function (x, y) { return F("inc", x, y); }, shiftM, { h: 180, bands: true });
+	columns("trend-prof", mA, mB, PROFIT, shiftM, { h: 150, bands: true, diverge: true });
+}
+function tile(l, v, d) {
+	return '<div class="tile"><div class="tlabel">' + l + '</div><div class="tval">' + v +
+		'</div><div class="tdelta">' + d + "</div></div>";
+}
+
+// ---------- boot ----------
+fetch("/api/method/agriops_suite.fin_api.snapshot", { credentials: "same-origin" })
+	.then(function (r) {
+		if (r.status === 403) throw new Error("Your user does not have the Accounts role for this page.");
+		if (!r.ok) throw new Error("Snapshot failed: HTTP " + r.status);
+		return r.json();
+	})
+	.then(function (j) {
+		D = j.message;
+		if (!D || !D.daily) throw new Error("Unexpected payload.");
+		if (!D.audit.balanced) throw new Error("Reconciliation failed: ledger debits ≠ credits — refusing to show numbers.");
+		var p0 = D.d0;
+		EPOCH = Date.UTC(+p0.slice(0, 4), +p0.slice(5, 7) - 1, +p0.slice(8, 10));
+		ND = D.nd; LAST = ND - 1;
+		P = {};
+		["inc", "dexp", "iexp"].forEach(function (b) { P[b] = prefix(D.daily[b]); });
+		var dd0 = dateOf(0);
+		M0Y = dd0.getUTCFullYear(); M0M = dd0.getUTCMonth() + 1;
+		NMON = monthOfDay(LAST) + 1;
+		st.a = fyStartFor(LAST); st.b = LAST;
+		var f = document.getElementById("from"), t = document.getElementById("to");
+		f.min = isoOf(0); f.max = isoOf(LAST); t.min = isoOf(0); t.max = isoOf(LAST);
+		f.value = isoOf(st.a); t.value = isoOf(st.b);
+		f.addEventListener("change", function () {
+			var i = idxOf(this.value);
+			if (isNaN(i)) return;
+			st.a = Math.max(0, Math.min(i, LAST));
+			if (st.b < st.a) { st.b = st.a; t.value = isoOf(st.b); }
+			st.preset = ""; render();
+		});
+		t.addEventListener("change", function () {
+			var i = idxOf(this.value);
+			if (isNaN(i)) return;
+			st.b = Math.max(0, Math.min(i, LAST));
+			if (st.a > st.b) { st.a = st.b; f.value = isoOf(st.a); }
+			st.preset = ""; render();
+		});
+		document.getElementById("cmpsel").addEventListener("change", function () {
+			st.cmp = +this.value; render();
+		});
+		document.getElementById("status").innerHTML =
+			'<span class="ok">✓ reconciled</span> — ledger debits equal credits (' + fmtL(D.audit.dr) +
+			") · books " + dot(0) + " → " + dot(LAST) +
+			(D.from_cache ? " · served from cache" : " · computed just now");
+		document.getElementById("foot").textContent =
+			"Snapshot generated " + D.generated + " · read-only · every figure is a live sum over tabGL Entry.";
+		document.getElementById("app").style.display = "";
+		render();
+	})
+	.catch(function (e) {
+		var box = document.getElementById("err");
+		box.style.display = "block";
+		box.textContent = e.message || String(e);
+		document.getElementById("status").innerHTML = '<span class="bad">✗ could not load</span>';
+	});
+})();
+</script>
+</body>
+</html>
