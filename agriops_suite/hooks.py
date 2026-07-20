@@ -72,6 +72,17 @@ app_include_css = [
 # copies the per-site vac_theme_enabled flag into desk boot info
 extend_bootinfo = "agriops_suite.boot.extend_bootinfo"
 
+# Bare "/" -> each user's OWN workspace (admin -> Admin Desk, dad -> Director,
+# nikita -> Employee Desk). A Website Route Redirect row cannot do this: it is
+# global, one target for everyone — a `/` -> `/desk/vac` row is exactly what
+# pinned all three of us to VAC. Deleting such a row is NOT sufficient either;
+# bare "/" then 404s on a stock v16 (get_home_page() returns "/desk/<slug>" with
+# a leading slash and path_resolver treats it as a template path). Full reasoning
+# in agriops_suite/desk_home.py.
+# ⚠️ Requires that Website Settings has NO `/` redirect row — a row short-circuits
+# at path_resolver.py:44, before page_renderer hooks are ever consulted.
+page_renderer = ["agriops_suite.desk_home.WorkspaceHomeRedirect"]
+
 # keep chosen standard reports (e.g. General Ledger) running LIVE rather than as
 # prepared/background reports — re-asserted after every migrate because a core
 # ERPNext upgrade re-imports the standard report and would flip it back.
