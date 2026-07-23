@@ -126,9 +126,13 @@ fixtures = [
     # NB: keep is_custom=0 on Driver — a role with is_custom=1 cannot be
     # granted on a custom DocType by non-Administrator users (v16
     # validate_permission_for_all_role), which breaks REST/fixture edits.
+    # Same for "Stock Counter" (Stock Count PWA /count): the Stock Count
+    # Session permissions reference it, including a permlevel-1 row with
+    # read=0/write=1 that lets the server snapshot the book position through
+    # a counter's own save without ever showing it back to them.
     {
         "dt": "Role",
-        "filters": {"name": ["in", ["Driver"]]},
+        "filters": {"name": ["in", ["Driver", "Stock Counter"]]},
     },
 
     # --- Our custom DocType definitions (records are seeded separately) -----
@@ -168,6 +172,19 @@ fixtures = [
                     # N lines; child table carries item/qty (+ office rate).
                     "Driver Slip",
                     "Driver Slip Item",
+                    # Stock Count PWA (/count): one counting run + its lines.
+                    # It exists because ERPNext DELETES zero-variance rows from
+                    # a Stock Reconciliation (remove_items_with_no_change), so
+                    # an item counted and found correct would otherwise leave
+                    # no record and StockPilot would re-list it as overdue for
+                    # ever. The session keeps every counted line; only real
+                    # differences reach the reconciliation.
+                    # ⛔ track_changes MUST stay 0 on Stock Count Session — a
+                    # Version row stores the raw child dict, and get_docinfo
+                    # serves Versions with ignore_permissions, which would hand
+                    # the counter every permlevel-hidden book quantity.
+                    "Stock Count Session",
+                    "Stock Count Entry",
                 ],
             ]
         },
@@ -235,6 +252,9 @@ fixtures = [
                 [
                     "LedgerLift-Form",
                     "LedgerLift-List",
+                    # Stock Count Session review: builds the DRAFT Stock
+                    # Reconciliation from the counted lines.
+                    "Stock Count Session - Review",
                     "Item Product Detail Molecule Fetch",
                     # party-tools counterpart buttons (fixture-ized post-
                     # rename as tracked; call agriops_suite.party.*)
@@ -316,6 +336,15 @@ fixtures = [
                     "LedgerLift Due Followups",
                     "StockPilot Freeze Classes",
                     "StockPilot Class Freeze Refresh",
+                    # Stock Count PWA (/count) endpoints. safe_exec notes:
+                    # frappe.parse_json does NOT exist here (use json.loads),
+                    # and frappe.get_all takes NO parent= kwarg (that is the
+                    # REST spelling; in-process it is parent_doctype and a
+                    # bare parent= raises TypeError).
+                    "Stock Count Bootstrap",
+                    "Stock Count Submit",
+                    "Stock Count Make Recon",
+                    "Stock Count Validate",
                     # Driver Slip PWA endpoints (DB records like LedgerLift's;
                     # safe_exec notes: no generate_hash / get_roles in there —
                     # uid fallback is "desk-"+doc.name, office check is
