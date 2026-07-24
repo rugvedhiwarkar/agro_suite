@@ -165,6 +165,14 @@ fixtures = [
                     # state and are deliberately NOT fixtures: a deploy must
                     # never reset them.
                     "StockPilot Settings",
+                    # Employee Desk worklist snapshot single. Same treatment as
+                    # StockPilot Settings: the DEFINITION is a fixture, the
+                    # snapshot VALUE is runtime state written nightly by the
+                    # `Employee Desk Worklist Refresh` scheduler and must never
+                    # ship in the repo (it is a dump of live receivables).
+                    # The two server scripts stay installer-managed, same
+                    # boundary as the StockPilot number-card endpoints below.
+                    "Employee Desk Worklist",
                     # Driver Slip PWA (/slip): the phone-captured transport-log
                     # record. Series DRS- ("Expression (old style)" — format:
                     # autoname's bare {#####} shares ONE global counter).
@@ -172,6 +180,16 @@ fixtures = [
                     # N lines; child table carries item/qty (+ office rate).
                     "Driver Slip",
                     "Driver Slip Item",
+                    # Cash-management tooling (goal 8). Promoted from installer-
+                    # managed to fixtures 2026-07-20 once the CUV book-balance
+                    # fix stabilised. NB: the definitions carry the frozen-on-
+                    # submit fields (prev_count, prior_day_drift, post_adjustment,
+                    # adjustment_reason, je_status). To change these now, edit +
+                    # re-export the fixture — a live-only edit is reverted on the
+                    # next deploy (that is the whole point of capturing them).
+                    "Cash Update Voucher",
+                    "Bank Deposit Voucher",
+                    "CUV Denomination",
                     # Stock Count PWA (/count): one counting run + its lines.
                     # It exists because ERPNext DELETES zero-variance rows from
                     # a Stock Reconciliation (remove_items_with_no_change), so
@@ -277,6 +295,11 @@ fixtures = [
                     # Driver Slip office review: Make Invoice button + challan
                     # duplicate warning (the PWA's desk-side counterpart)
                     "Driver Slip - Make Invoice",
+                    # Cash-management forms: denomination grid + book-balance
+                    # fetch. BDV set_query still filters on the surviving
+                    # "Cash In Hand - VAC"; CUV's now filters by account_type.
+                    "Cash Update Voucher-Form",
+                    "Bank Deposit Voucher-Form",
                 ],
             ]
         },
@@ -353,6 +376,19 @@ fixtures = [
                     "Driver Slip Submit",
                     "Driver Slip Bootstrap",
                     "Driver Slip Make Invoice",
+                    # Cash Update Voucher fix (frozen-on-submit book balance,
+                    # one-count-per-day, negative-drawer + Rs 1L guards) and its
+                    # sibling Bank Deposit Voucher (over-balance now advisory).
+                    # Captured 2026-07-20; thresholds live in the script bodies
+                    # (AUTO_POST_TOLERANCE / SELF_POST_CAP) — edit + re-export.
+                    "Cash Update Voucher Compute",
+                    "Cash Update Voucher Submit Gate",
+                    "Cash Update Voucher Create JE",
+                    "Cash Update Voucher Cancel JE",
+                    "CUV Fetch Book Balance",
+                    "Bank Deposit Voucher Compute",
+                    "Bank Deposit Voucher Create JE",
+                    "Bank Deposit Voucher Cancel JE",
                 ],
             ]
         },
@@ -434,23 +470,41 @@ fixtures = [
     },
 
     # --- Our Property Setters (UI tweaks made via Customize Form) -----------
-    # Captures our manual field-level customizations (2026-06-10 onward) plus
-    # the claude-agent Product Details reorderings. EXCLUDES the 2026-06-09
-    # setup burst — 107 records created in a 12-second programmatic pass at site
-    # setup (India Compliance audit-trail `track_changes`, `default_print_format`
-    # and regional field hides). A fresh ERPNext + India Compliance site
-    # recreates those on its own, so re-asserting them from here would be wrong.
+    # EXPLICIT ALLOWLIST — do NOT go back to a date filter. The previous
+    # `creation >= 2026-06-10` capture pulled in 227 records and a live audit
+    # showed EVERY one was is_system_generated=1, i.e. core ERPNext / India
+    # Compliance regional config (GST transport fields, precision and
+    # allow_on_submit flags, an "Overridden by India Compliance" read_only).
+    # Because this app syncs LAST it re-imposed a frozen July-2026 snapshot of
+    # that core/IC config on every `bench migrate`, able to silently revert a
+    # future upstream IC/GST fix. A fresh ERPNext + India Compliance site
+    # recreates all of it on its own, so asserting it from here is wrong.
+    #
+    # `is_system_generated = 0` is NOT a safe filter either: staging carries 14
+    # extra hand-made naming_series setters (SI26-/PI26-/JE26-…) that production
+    # does not, so a self-maintaining filter exported from staging would push
+    # staging's voucher numbering onto prod. Name the records deliberately.
+    #
+    # Below: the update_stock default fix — non-POS Sales/Purchase Invoices used
+    # to default update_stock=0 and silently move no stock.
     {
         "dt": "Property Setter",
-        "filters": {"creation": [">=", "2026-06-10 00:00:00"]},
+        "filters": {
+            "name": [
+                "in",
+                [
+                    "Sales Invoice-update_stock-default",
+                    "Purchase Invoice-update_stock-default",
+                ],
+            ]
+        },
     },
-    # default_print_format for the bill forms -> the VAC formats. Kept in a
-    # SEPARATE prefixed file (printdefaults_property_setter.json) because 4 of
-    # the 5 records were created in the 2026-06-09 setup burst and the date
-    # filter above deliberately excludes that burst — a plain merge would drop
-    # them on the next export. `prefix` writes its own file, so the two Property
-    # Setter captures never collide. (SI/DN existed pre-print-work; PI/PO/PR
-    # were repointed/added 2026-07-16.)
+    # Every default_print_format choice -> the VAC formats. Kept in a SEPARATE
+    # prefixed file (printdefaults_property_setter.json) so the two Property
+    # Setter captures never collide. `prefix` writes its own file. (SI/DN existed
+    # pre-print-work; PI/PO/PR were repointed/added 2026-07-16; e-Waybill Log is
+    # India Compliance's log pointed at its own format, added 2026-07-22 when the
+    # allowlist above replaced the date filter that used to sweep it up.)
     {
         "dt": "Property Setter",
         "prefix": "printdefaults",
@@ -463,6 +517,7 @@ fixtures = [
                     "Purchase Invoice-main-default_print_format",
                     "Purchase Order-main-default_print_format",
                     "Purchase Receipt-main-default_print_format",
+                    "e-Waybill Log-main-default_print_format",
                 ],
             ]
         },

@@ -73,9 +73,10 @@ def bench(cmd, timeout=560):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("action", choices=["preview", "prereqs", "go", "reconcile"])
+    ap.add_argument("action", choices=["preview", "prereqs", "go", "reconcile", "wipe"])
     ap.add_argument("--limit", type=int)
     ap.add_argument("--types")
+    ap.add_argument("--names")
     args = ap.parse_args()
 
     disk_name = upload_script()
@@ -85,6 +86,8 @@ def main():
         extra += f" --limit {args.limit}"
     if args.types:
         extra += f" --types {args.types}"
+    if args.names:
+        extra += f" --names {args.names}"
     marker = uuid.uuid4().hex[:8]
     # run from the sites dir (frappe.init cwd rule); full output to a file, then cat
     cmd = (f"cp ~/frappe-bench/sites/{STAGING_SITE}/private/files/{disk_name} /tmp/kp_mirror.py"

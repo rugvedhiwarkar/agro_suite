@@ -33,22 +33,6 @@
  },
  {
   "default_value": null,
-  "doc_type": "Purchase Order",
-  "docstatus": 0,
-  "doctype": "Property Setter",
-  "doctype_or_field": "DocType",
-  "field_name": null,
-  "is_system_generated": 1,
-  "modified": "2026-07-16 12:54:48.620791",
-  "module": null,
-  "name": "Purchase Order-main-default_print_format",
-  "property": "default_print_format",
-  "property_type": "Link",
-  "row_name": null,
-  "value": "VAC Purchase Order"
- },
- {
-  "default_value": null,
   "doc_type": "Purchase Invoice",
   "docstatus": 0,
   "doctype": "Property Setter",
@@ -65,6 +49,22 @@
  },
  {
   "default_value": null,
+  "doc_type": "Purchase Order",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocType",
+  "field_name": null,
+  "is_system_generated": 1,
+  "modified": "2026-07-16 12:54:48.620791",
+  "module": null,
+  "name": "Purchase Order-main-default_print_format",
+  "property": "default_print_format",
+  "property_type": "Link",
+  "row_name": null,
+  "value": "VAC Purchase Order"
+ },
+ {
+  "default_value": null,
   "doc_type": "Purchase Receipt",
   "docstatus": 0,
   "doctype": "Property Setter",
@@ -78,5 +78,21 @@
   "property_type": "Link",
   "row_name": null,
   "value": "VAC Goods Received Note"
+ },
+ {
+  "default_value": null,
+  "doc_type": "e-Waybill Log",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocType",
+  "field_name": null,
+  "is_system_generated": 0,
+  "modified": "2026-06-09 19:29:50.188067",
+  "module": null,
+  "name": "e-Waybill Log-main-default_print_format",
+  "property": "default_print_format",
+  "property_type": "Data",
+  "row_name": null,
+  "value": "e-Waybill"
  }
 ]
